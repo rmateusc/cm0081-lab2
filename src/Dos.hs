@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 import Text.XML.HXT.Core
 
@@ -28,7 +29,7 @@ import qualified Data.Vector as Vector
 import qualified Control.Monad as Monad
 
 data Meteorite =
-     Meteorite
+     Mt
     {
         meteoriteName :: [Char],
         meteoriteID :: [Char],
@@ -40,8 +41,13 @@ data Meteorite =
         meteoriteLongitude :: [Char]
     }
 
+instance Show Meteorite where
+     show (Mt nm id nt ms fl yr la lo) =
+          show nm ++ "," ++ show id ++ "," ++ show nt ++ "," ++ show ms ++ ","
+          ++ show fl ++ "," ++ show yr ++ "," ++ show la ++ "," ++ show lo
+
 instance ToNamedRecord Meteorite where
-    toNamedRecord Meteorite{..} = Cassava.namedRecord
+    toNamedRecord Mt{..} = Cassava.namedRecord
         [ "Name" .= meteoriteName
         , "ID" .= meteoriteID
         , "Status" .= meteoriteStatus
@@ -95,49 +101,48 @@ listToVector :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> [[Char]]
                 -> [[Char]] -> [[Char]] -> [[Char]] -> [Meteorite]
                 -> Vector Meteorite
 listToVector [] _ _ _ _ _ _ _ meteorites = Vector.fromList meteorites
-listToVector (nm:ss) (id:ts) (nt:us) (ms:vs) (fl:ws) (yr:xs) (la:ys) (lo:zs)
-    meteorites = let meteorite :: Meteorite
-                     meteorite = Meteorite {
-                meteoriteName = nm,
-                meteoriteID = id,
-                meteoriteStatus = nt,
-                meteoriteMass = ms,
-                meteoriteFell = fl,
-                meteoriteYear = yr,
-                meteoriteLatitude = la,
-                meteoriteLongitude = lo
-            }
-                 in listToVector ss ts us vs ws xs ys zs (meteorites ++
-                 [meteorite])
+listToVector (nm:ss) (id:ts) (nt:us) (ms:vs) (fl:ws) (yr:xs) (la:ys) (lo:zs) _ =
+     let meteorite :: Meteorite
+         meteorite = Mt {
+              meteoriteName = nm,
+              meteoriteID = id,
+              meteoriteStatus = nt,
+              meteoriteMass = ms,
+              meteoriteFell = fl,
+              meteoriteYear = yr,
+              meteoriteLatitude = la,
+              meteoriteLongitude = lo
+         }
+     in listToVector ss ts us vs ws xs ys zs (_ ++ [meteorite])
 
 {-Extracting attributes from tree-}
 mining :: IO ()
 mining = do
-    input <- readFile "prerows.xml"
-    nm <- runX $ readString [withValidate no] input
-         //> hasName "name"
-         //> getText
-    id <- runX $ readString [withValidate no] input
-         //> hasName "id"
-         //> getText
-    nt <- runX $ readString [withValidate no] input
-         //> hasName "nametype"
-         //> getText
-    ms <- runX $ readString [withValidate no] input
-         //> hasName "mass"
-         //> getText
-    fl <- runX $ readString [withValidate no] input
-         //> hasName "fall"
-         //> getText
-    yr <- runX $ readString [withValidate no] input
-         //> hasName "year"
-         //> getText
-    la <- runX $ readString [withValidate no] input
-         //> hasName "reclat"
-         //> getText
-    lo <- runX $ readString [withValidate no] input
-         //> hasName "reclong"
-         //> getText
-    let meteorites :: Vector Meteorite
-        meteorites = listToVector nm id nt ms fl yr la lo []
-    Monad.void (encodeMeteoritesToFile "meteoritos.csv" meteorites)
+     input <- readFile "C:/Users/danie/Documents/Daniel/Universidad/4toSemestre/LenguajesFormalesyAutomatas/Lab2/prerows.xml"
+     nm <- runX $ readString [withValidate no] input
+          //> hasName "name"
+          //> getText
+     id <- runX $ readString [withValidate no] input
+          //> hasName "id"
+          //> getText
+     nt <- runX $ readString [withValidate no] input
+          //> hasName "nametype"
+          //> getText
+     ms <- runX $ readString [withValidate no] input
+          //> hasName "mass"
+          //> getText
+     fl <- runX $ readString [withValidate no] input
+          //> hasName "fall"
+          //> getText
+     yr <- runX $ readString [withValidate no] input
+          //> hasName "year"
+          //> getText
+     la <- runX $ readString [withValidate no] input
+          //> hasName "reclat"
+          //> getText
+     lo <- runX $ readString [withValidate no] input
+          //> hasName "reclong"
+          //> getText
+     let meteorites :: Vector Meteorite
+         meteorites = listToVector nm id nt ms fl yr la lo []
+     Monad.void (encodeMeteoritesToFile "meteoritos.csv" meteorites)
