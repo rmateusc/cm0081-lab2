@@ -101,7 +101,7 @@ listToVector :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> [[Char]]
                 -> [[Char]] -> [[Char]] -> [[Char]] -> [Meteorite]
                 -> Vector Meteorite
 listToVector [] _ _ _ _ _ _ _ meteorites = Vector.fromList meteorites
-listToVector (nm:ss) (id:ts) (nt:us) (ms:vs) (fl:ws) (yr:xs) (la:ys) (lo:zs) _ =
+listToVector (nm:ss) (id:ts) (nt:us) (ms:vs) (fl:ws) (yr:xs) (la:ys) (lo:zs) [] =
      let meteorite :: Meteorite
          meteorite = Mt {
               meteoriteName = nm,
@@ -113,7 +113,20 @@ listToVector (nm:ss) (id:ts) (nt:us) (ms:vs) (fl:ws) (yr:xs) (la:ys) (lo:zs) _ =
               meteoriteLatitude = la,
               meteoriteLongitude = lo
          }
-     in listToVector ss ts us vs ws xs ys zs (_ ++ [meteorite])
+     in listToVector ss ts us vs ws xs ys zs [meteorite]
+listToVector (nm:ss) (id:ts) (nt:us) (ms:vs) (fl:ws) (yr:xs) (la:ys) (lo:zs) m =
+     let meteorite :: Meteorite
+         meteorite = Mt {
+              meteoriteName = nm,
+              meteoriteID = id,
+              meteoriteStatus = nt,
+              meteoriteMass = ms,
+              meteoriteFell = fl,
+              meteoriteYear = yr,
+              meteoriteLatitude = la,
+              meteoriteLongitude = lo
+         }
+     in listToVector ss ts us vs ws xs ys zs (m ++ [meteorite])
 
 {-Extracting attributes from tree-}
 mining :: IO ()
