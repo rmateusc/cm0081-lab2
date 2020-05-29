@@ -99,36 +99,35 @@ encodeMeteoritesToFile :: FilePath -> Vector Meteorite -> IO (Either String ())
 encodeMeteoritesToFile filePath = catchShowIO . ByteString.writeFile filePath .
                                                                 encodeMeteorites
 
-listToVector :: [[Char]] -> [[Char]] -> [[Char]] -> [[Char]] -> [[Char]]
-                -> [[Char]] -> [[Char]] -> [[Char]] -> [Meteorite]
+listToVector :: [[[Char]]] -> [Meteorite]
                 -> Vector Meteorite
-listToVector [] _ _ _ _ _ _ _ meteorites = Vector.fromList meteorites
-listToVector (nm:ss) (id:ts) (nt:us) (ms:vs) (fl:ws) (yr:xs) (la:ys) (lo:zs) [] =
+listToVector [] meteorites = Vector.fromList meteorites
+listToVector (x:xs) [] =
      let meteorite :: Meteorite
          meteorite = Mt {
-              meteoriteName = nm,
-              meteoriteID = id,
-              meteoriteStatus = nt,
-              meteoriteMass = ms,
-              meteoriteFell = fl,
-              meteoriteYear = yr,
-              meteoriteLatitude = la,
-              meteoriteLongitude = lo
+              meteoriteName = element x,
+              meteoriteID = elementk x 1,
+              meteoriteStatus = elementk x 2,
+              meteoriteMass = elementk x 4,
+              meteoriteFell = elementk x 5,
+              meteoriteYear = elementk x 6,
+              meteoriteLatitude = elementk x 7,
+              meteoriteLongitude = elementk x 8
          }
-     in listToVector ss ts us vs ws xs ys zs [meteorite]
-listToVector (nm:ss) (id:ts) (nt:us) (ms:vs) (fl:ws) (yr:xs) (la:ys) (lo:zs) m =
+     in listToVector xs [meteorite]
+listToVector (x:xs) m =
      let meteorite :: Meteorite
          meteorite = Mt {
-              meteoriteName = nm,
-              meteoriteID = id,
-              meteoriteStatus = nt,
-              meteoriteMass = ms,
-              meteoriteFell = fl,
-              meteoriteYear = yr,
-              meteoriteLatitude = la,
-              meteoriteLongitude = lo
+              meteoriteName = element x,
+              meteoriteID = elementk x 1,
+              meteoriteStatus = elementk x 2,
+              meteoriteMass = elementk x 4,
+              meteoriteFell = elementk x 5,
+              meteoriteYear = elementk x 6,
+              meteoriteLatitude = elementk x 7,
+              meteoriteLongitude = elementk x 8
          }
-     in listToVector ss ts us vs ws xs ys zs (m ++ [meteorite])
+     in listToVector xs (m ++ [meteorite])
 
 element :: [a] -> a
 element []    = error "list too short"
@@ -139,33 +138,57 @@ elementk [] _     = error "list too short"
 elementk (x:xs) 0 = x
 elementk (_:xs) k = elementk xs (k - 1)
 
+toYear :: [Char] -> [Char]
+toYear yr = take 4 yr
 
-extractAtributes :: [[Char]] -> [Char] -> [[Char]] -> [[Char]]
-extractAtributes [] _ atributes = atributes
-extractAtributes (x:xs) meteorite [] =
-     let atr :: [[Char]]
-         atr = splitOn ":" x
-         in let split :: ([Char],[Char])
-                split = extraction atr meteorite
-                in extractAtributes xs (snd split) [fst split]
-extractAtributes (x:xs) meteorite atributes =
-     let atr :: [[Char]]
-         atr = splitOn ":" x
-         in let split :: ([Char],[Char])
-                split = extraction atr meteorite
-                in extractAtributes xs (snd split) (atributes ++ [fst split])
+goodOrBad :: [Char] -> [Char]
+goodOrBad "Valid" = "Good"
+goodOrBad "Relict" = "Bad"
 
 extraction :: [[Char]] -> [Char] -> ([Char],[Char])
-extraction x meteorite =
+extraction attr meteorite =
      let isin :: Bool
-         isin = (meteorite =~ (element x))
+         isin = (meteorite =~ (element attr))
          in
               if isin == True
-                   then
-                        let split :: [[Char]]
-                            split = splitOn (elementk x 1) (elementk (splitOn (element x) meteorite) 1)
-                            in (element split, elementk split 1)
+                    then if (element attr) == "<nametype>"
+                              then let split :: [[Char]]
+                                       split = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
+                                       in (goodOrBad (element split), elementk split 1)
+                         else if (element attr) == "<year>"
+                                   then let split :: [[Char]]
+                                            split = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
+                                            in (toYear (element split), elementk split 1)
+                         else let split :: [[Char]]
+                                  split = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
+                                  in (element split, elementk split 1)
                else ("",meteorite)
+
+extractAttributes :: [[Char]] -> [Char] -> [[Char]] -> [[Char]]
+extractAttributes [] _ attributes = attributes
+extractAttributes (x:xs) meteorite [] =
+     let attr :: [[Char]]
+         attr = splitOn ":" x
+         in let split :: ([Char],[Char])
+                split = extraction attr meteorite
+                in extractAttributes xs (snd split) [fst split]
+extractAttributes (x:xs) meteorite attributes =
+     let attr :: [[Char]]
+         attr = splitOn ":" x
+         in let split :: ([Char],[Char])
+                split = extraction attr meteorite
+                in extractAttributes xs (snd split) (attributes ++ [fst split])
+
+listOfMeteorites :: [[Char]] -> [[Char]] -> [[[Char]]] -> [[[Char]]]
+listOfMeteorites [] attributes meteorite = meteorite
+listOfMeteorites (x:xs) attributes [] =
+     let meteorite :: [[Char]]
+         meteorite = extractAttributes attributes x []
+         in listOfMeteorites xs attributes [meteorite]
+listOfMeteorites (x:xs) attributes meteorite =
+     let met :: [[Char]]
+         met = extractAttributes attributes x []
+         in listOfMeteorites xs attributes (meteorite ++ [met])
 
 {-Extracting attributes from tree-}
 mining :: IO ()
@@ -173,14 +196,14 @@ mining = do
      input <- readFile "C:/Users/danie/Documents/Daniel/Universidad/4toSemestre/LenguajesFormalesyAutomatas/Lab2/prerows.xml"
      let rows :: [[Char]]
          rows = splitOn "</row>" input
-     let atributes :: [[Char]]
-         atributes = ["<name>:</name>","<id>:</id>","<nametype>:</nametype>",
+     let attributes :: [[Char]]
+         attributes = ["<name>:</name>","<id>:</id>","<nametype>:</nametype>",
                       "<recclass>:</recclass>","<mass>:</mass>","<fall>:</fall>"
                       ,"<year>:</year>","<reclat>:</reclat>",
                       "<reclong>:</reclong>"]
-     let atr :: [[Char]]
-         atr = extractAtributes atributes (elementk rows 12) []
-     print atr
-     -- let meteorites :: Vector Meteorite
-     --     meteorites = listToVector nm id nt ms fl yr la lo []
+     let met :: [[[Char]]]
+         met = listOfMeteorites rows attributes []
+     let meteorites :: Vector Meteorite
+         meteorites = listToVector met []
+     print meteorites
      -- Monad.void (encodeMeteoritesToFile "meteoritos.csv" meteorites)
