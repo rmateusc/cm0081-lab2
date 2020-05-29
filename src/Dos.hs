@@ -205,5 +205,4 @@ mining = do
          met = listOfMeteorites rows attributes []
      let meteorites :: Vector Meteorite
          meteorites = listToVector met []
-     print meteorites
-     -- Monad.void (encodeMeteoritesToFile "meteoritos.csv" meteorites)
+     Monad.void (encodeMeteoritesToFile "meteoritos.csv" meteorites)
