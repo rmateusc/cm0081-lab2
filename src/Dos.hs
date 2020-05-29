@@ -2,7 +2,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-import Text.XML.HXT.Core
+import Text.Regex.TDFA
 
 import Control.Exception (IOException)
 import qualified Control.Exception as Exception
@@ -25,6 +25,8 @@ import qualified Data.Text.Encoding as Text
 
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
+
+import Data.List.Split
 
 import qualified Control.Monad as Monad
 
@@ -128,34 +130,57 @@ listToVector (nm:ss) (id:ts) (nt:us) (ms:vs) (fl:ws) (yr:xs) (la:ys) (lo:zs) m =
          }
      in listToVector ss ts us vs ws xs ys zs (m ++ [meteorite])
 
+element :: [a] -> a
+element []    = error "list too short"
+element (x:xs) = x
+
+elementk :: [a] -> Int -> a
+elementk [] _     = error "list too short"
+elementk (x:xs) 0 = x
+elementk (_:xs) k = elementk xs (k - 1)
+
+
+extractAtributes :: [[Char]] -> [Char] -> [[Char]] -> [[Char]]
+extractAtributes [] _ atributes = atributes
+extractAtributes (x:xs) meteorite [] =
+     let atr :: [[Char]]
+         atr = splitOn ":" x
+         in let split :: ([Char],[Char])
+                split = extraction atr meteorite
+                in extractAtributes xs (snd split) [fst split]
+extractAtributes (x:xs) meteorite atributes =
+     let atr :: [[Char]]
+         atr = splitOn ":" x
+         in let split :: ([Char],[Char])
+                split = extraction atr meteorite
+                in extractAtributes xs (snd split) (atributes ++ [fst split])
+
+extraction :: [[Char]] -> [Char] -> ([Char],[Char])
+extraction x meteorite =
+     let isin :: Bool
+         isin = (meteorite =~ (element x))
+         in
+              if isin == True
+                   then
+                        let split :: [[Char]]
+                            split = splitOn (elementk x 1) (elementk (splitOn (element x) meteorite) 1)
+                            in (element split, elementk split 1)
+               else ("",meteorite)
+
 {-Extracting attributes from tree-}
 mining :: IO ()
 mining = do
      input <- readFile "C:/Users/danie/Documents/Daniel/Universidad/4toSemestre/LenguajesFormalesyAutomatas/Lab2/prerows.xml"
-     nm <- runX $ readString [withValidate no] input
-          //> hasName "name"
-          //> getText
-     id <- runX $ readString [withValidate no] input
-          //> hasName "id"
-          //> getText
-     nt <- runX $ readString [withValidate no] input
-          //> hasName "nametype"
-          //> getText
-     ms <- runX $ readString [withValidate no] input
-          //> hasName "mass"
-          //> getText
-     fl <- runX $ readString [withValidate no] input
-          //> hasName "fall"
-          //> getText
-     yr <- runX $ readString [withValidate no] input
-          //> hasName "year"
-          //> getText
-     la <- runX $ readString [withValidate no] input
-          //> hasName "reclat"
-          //> getText
-     lo <- runX $ readString [withValidate no] input
-          //> hasName "reclong"
-          //> getText
-     let meteorites :: Vector Meteorite
-         meteorites = listToVector nm id nt ms fl yr la lo []
-     Monad.void (encodeMeteoritesToFile "meteoritos.csv" meteorites)
+     let rows :: [[Char]]
+         rows = splitOn "</row>" input
+     let atributes :: [[Char]]
+         atributes = ["<name>:</name>","<id>:</id>","<nametype>:</nametype>",
+                      "<recclass>:</recclass>","<mass>:</mass>","<fall>:</fall>"
+                      ,"<year>:</year>","<reclat>:</reclat>",
+                      "<reclong>:</reclong>"]
+     let atr :: [[Char]]
+         atr = extractAtributes atributes (elementk rows 12) []
+     print atr
+     -- let meteorites :: Vector Meteorite
+     --     meteorites = listToVector nm id nt ms fl yr la lo []
+     -- Monad.void (encodeMeteoritesToFile "meteoritos.csv" meteorites)
