@@ -152,8 +152,6 @@ extraction attr meteorite =
                                   in (element splitt, elementk splitt 1)
                else ("",meteorite)
 
-{- | This function recieves a list of strings, a string and another list of
-    strings. Then it splits the first list of strings and splits -}
 extractAttributes :: [String] -> String -> [String] -> [String]
 extractAttributes [] _ attributes = attributes
 extractAttributes (x:xs) meteorite [] =
