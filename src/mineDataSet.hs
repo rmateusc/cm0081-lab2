@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+--module mining where
 
 import Text.Regex.TDFA
 
@@ -33,14 +34,14 @@ import qualified Control.Monad as Monad
 data Meteorite =
      Mt
     {
-        meteoriteName :: [Char],
-        meteoriteID :: [Char],
-        meteoriteStatus :: [Char],
-        meteoriteMass :: [Char],
-        meteoriteFell :: [Char],
-        meteoriteYear :: [Char],
-        meteoriteLatitude :: [Char],
-        meteoriteLongitude :: [Char]
+        meteoriteName :: String,
+        meteoriteID :: String,
+        meteoriteStatus :: String,
+        meteoriteMass :: String,
+        meteoriteFell :: String,
+        meteoriteYear :: String,
+        meteoriteLatitude :: String,
+        meteoriteLongitude :: String
     }
 
 instance Show Meteorite where
@@ -99,7 +100,7 @@ encodeMeteoritesToFile :: FilePath -> Vector Meteorite -> IO (Either String ())
 encodeMeteoritesToFile filePath = catchShowIO . ByteString.writeFile filePath .
                                                                 encodeMeteorites
 
-listToVector :: [[[Char]]] -> [Meteorite]
+listToVector :: [[String]] -> [Meteorite]
                 -> Vector Meteorite
 listToVector [] meteorites = Vector.fromList meteorites
 listToVector (x:xs) [] =
@@ -138,70 +139,70 @@ elementk [] _     = error "list too short"
 elementk (x:xs) 0 = x
 elementk (_:xs) k = elementk xs (k - 1)
 
-toYear :: [Char] -> [Char]
-toYear yr = take 4 yr
+toYear :: String -> String
+toYear = take 4
 
-goodOrBad :: [Char] -> [Char]
+goodOrBad :: String -> String
 goodOrBad "Valid" = "Good"
 goodOrBad "Relict" = "Bad"
 
-extraction :: [[Char]] -> [Char] -> ([Char],[Char])
+extraction :: [String] -> String -> (String,String)
 extraction attr meteorite =
      let isin :: Bool
-         isin = (meteorite =~ (element attr))
+         isin = (meteorite =~ element attr)
          in
-              if isin == True
-                    then if (element attr) == "<nametype>"
-                              then let split :: [[Char]]
+              if isin
+                    then if element attr == "<nametype>"
+                              then let split :: [String]
                                        split = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
                                        in (goodOrBad (element split), elementk split 1)
-                         else if (element attr) == "<year>"
-                                   then let split :: [[Char]]
+                         else if element attr == "<year>"
+                                   then let split :: [String]
                                             split = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
                                             in (toYear (element split), elementk split 1)
-                         else let split :: [[Char]]
+                         else let split :: [String]
                                   split = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
                                   in (element split, elementk split 1)
                else ("",meteorite)
 
-extractAttributes :: [[Char]] -> [Char] -> [[Char]] -> [[Char]]
+extractAttributes :: [String] -> String -> [String] -> [String]
 extractAttributes [] _ attributes = attributes
 extractAttributes (x:xs) meteorite [] =
-     let attr :: [[Char]]
+     let attr :: [String]
          attr = splitOn ":" x
-         in let split :: ([Char],[Char])
+         in let split :: (String,String)
                 split = extraction attr meteorite
                 in extractAttributes xs (snd split) [fst split]
 extractAttributes (x:xs) meteorite attributes =
-     let attr :: [[Char]]
+     let attr :: [String]
          attr = splitOn ":" x
-         in let split :: ([Char],[Char])
+         in let split :: (String,String)
                 split = extraction attr meteorite
                 in extractAttributes xs (snd split) (attributes ++ [fst split])
 
-listOfMeteorites :: [[Char]] -> [[Char]] -> [[[Char]]] -> [[[Char]]]
+listOfMeteorites :: [String] -> [String] -> [[String]] -> [[String]]
 listOfMeteorites [] attributes meteorite = meteorite
 listOfMeteorites (x:xs) attributes [] =
-     let meteorite :: [[Char]]
+     let meteorite :: [String]
          meteorite = extractAttributes attributes x []
          in listOfMeteorites xs attributes [meteorite]
 listOfMeteorites (x:xs) attributes meteorite =
-     let met :: [[Char]]
+     let met :: [String]
          met = extractAttributes attributes x []
          in listOfMeteorites xs attributes (meteorite ++ [met])
 
 {-Extracting attributes from tree-}
-mining :: IO ()
-mining = do
+main :: IO ()
+main = do
      input <- readFile "C:/Users/danie/Documents/Daniel/Universidad/4toSemestre/LenguajesFormalesyAutomatas/Lab2/prerows.xml"
-     let rows :: [[Char]]
+     let rows :: [String]
          rows = splitOn "</row>" input
-     let attributes :: [[Char]]
+     let attributes :: [String]
          attributes = ["<name>:</name>","<id>:</id>","<nametype>:</nametype>",
                       "<recclass>:</recclass>","<mass>:</mass>","<fall>:</fall>"
                       ,"<year>:</year>","<reclat>:</reclat>",
                       "<reclong>:</reclong>"]
-     let met :: [[[Char]]]
+     let met :: [[String]]
          met = listOfMeteorites rows attributes []
      let meteorites :: Vector Meteorite
          meteorites = listToVector met []
