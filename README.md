@@ -16,7 +16,7 @@ vector that later on our program writes it in a .csv file.
 
 ## To use our program
 use the ./mine command followed by the address of the .xml
-file to be read and and the name of the .csv file to be written. 
+file to be read and and the name of the .csv file to be written.
 Example:
 ```bash
 $ ./mine meteoriteLandings.xml meteoriteLandings.csv
