@@ -17,7 +17,6 @@ import System.Environment
 import Data.Csv
   ( DefaultOrdered(headerOrder)
   , Header
-  , ToField(toField)
   , ToNamedRecord(toNamedRecord)
   , (.=)
   )
