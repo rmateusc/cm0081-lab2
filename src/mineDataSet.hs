@@ -131,6 +131,7 @@ toYear = take 4
 goodOrBad :: String -> String
 goodOrBad "Valid" = "Good"
 goodOrBad "Relict" = "Bad"
+goodOrBad _ = ""
 
 extraction :: [String] -> String -> (String,String)
 extraction attr meteorite =
