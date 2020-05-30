@@ -4,6 +4,7 @@
 
 import Text.Regex.TDFA
 import Data.List.Split
+import System.Environment
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
 import Control.Exception (IOException)
@@ -12,9 +13,8 @@ import Data.ByteString.Lazy (ByteString)
 import qualified Data.Foldable as Foldable
 import qualified Control.Exception as Exception
 import qualified Data.ByteString.Lazy as ByteString
-import System.Environment
 
-import Data.Csv
+import Data.Csv as Cassava
   ( DefaultOrdered(headerOrder)
   , Header
   , ToNamedRecord(toNamedRecord)
@@ -213,7 +213,9 @@ listOfMeteorites (x:xs) attributes meteorite =
          met = extractAttributes attributes x []
          in listOfMeteorites xs attributes (meteorite ++ [met])
 
-{- |  -}
+{- | Main function, initializes all the above functions. Reads a .xml file and
+     splits it, then extracts the attributes ands converts them to a list,
+     finally creates a vector and writes a .csv file. -}
 main :: IO ()
 main = do
      paths <- getArgs
