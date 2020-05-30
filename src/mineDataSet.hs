@@ -12,6 +12,7 @@ import Data.ByteString.Lazy (ByteString)
 import qualified Data.Foldable as Foldable
 import qualified Control.Exception as Exception
 import qualified Data.ByteString.Lazy as ByteString
+import System.Environment
 
 import Data.Csv
   ( DefaultOrdered(headerOrder)
@@ -23,7 +24,7 @@ import Data.Csv
 import qualified Data.Csv as Cassava
 
 {- | Represents a Meteorite. With name, id, status, mass, fell, year, latitude
-and longitude as attributes. -}
+     and longitude as attributes. -}
 data Meteorite =
      Mt
     {
@@ -43,6 +44,8 @@ instance Show Meteorite where
           show nm ++ "," ++ show di ++ "," ++ show nt ++ "," ++ show ms ++ ","
           ++ show fl ++ "," ++ show yr ++ "," ++ show la ++ "," ++ show lo
 
+{- | Indicates what each attribute of the Meteorite will represent in the csv
+     file. -}
 instance ToNamedRecord Meteorite where
     toNamedRecord Mt{..} = Cassava.namedRecord
         [ "Name" .= meteoriteName
@@ -55,6 +58,8 @@ instance ToNamedRecord Meteorite where
         , "Longitude" .= meteoriteLongitude
         ]
 
+{- | Defines the order in which the atrributes of the Meteorite will be
+     organized in the csv. -}
 instance DefaultOrdered Meteorite where
     headerOrder _ = Cassava.header
             [
@@ -69,22 +74,24 @@ instance DefaultOrdered Meteorite where
             ]
 
 {- | This function recieves a meteorite vector and encodes it into a
-ByteString. -}
+     ByteString. -}
 encodeMeteorites :: Vector Meteorite -> ByteString
 encodeMeteorites =  Cassava.encodeDefaultOrderedByName . Foldable.toList
 
+{- | Catches exceptions while writing the csv file. -}
 catchShowIO :: IO a -> IO (Either String a)
 catchShowIO action = fmap Right action `Exception.catch` handleIOException
             where
                 handleIOException :: IOException -> IO (Either String a)
                 handleIOException = return . Left . show
 
+{- | This function is the one in charged of writting the file. -}
 encodeMeteoritesToFile :: FilePath -> Vector Meteorite -> IO (Either String ())
 encodeMeteoritesToFile filePath = catchShowIO . ByteString.writeFile filePath .
                                                                 encodeMeteorites
 
 {- | This function recieves a list of strings and a list of meteorites and
-transforms them into a vector of meteorites. -}
+     transforms them into a vector of meteorites. -}
 listToVector :: [[String]] -> [Meteorite]
                 -> Vector Meteorite
 listToVector [] meteorites = Vector.fromList meteorites
@@ -115,10 +122,12 @@ listToVector (x:xs) m =
          }
      in listToVector xs (m ++ [meteorite])
 
+{- | Extracts the first element of a list. -}
 element :: [a] -> a
 element []    = error "list too short"
 element (x:_) = x
 
+{- | Extracts the element in the position k of a list. -}
 elementk :: [a] -> Int -> a
 elementk [] _     = error "list too short"
 elementk (x:_) 0 = x
@@ -134,6 +143,9 @@ goodOrBad "Valid" = "Good"
 goodOrBad "Relict" = "Bad"
 goodOrBad _ = ""
 
+{- | This function is in charged of extracting the attributes of the xml line.
+     The list of strings has the identifiers needed to split the string in order
+     to extract its values-}
 extraction :: [String] -> String -> (String,String)
 extraction attr meteorite =
      let isin :: Bool
@@ -141,17 +153,35 @@ extraction attr meteorite =
          in if isin
                 then if element attr == "<nametype>"
                         then let splitt :: [String]
-                                 splitt = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
+                                 splitt =
+                                      splitOn
+                                      (elementk attr 1)
+                                      (elementk
+                                      (splitOn (element attr) meteorite) 1)
                               in (goodOrBad (element splitt), elementk splitt 1)
                          else if element attr == "<year>"
                             then let splitt :: [String]
-                                     splitt = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
+                                     splitt =
+                                        splitOn
+                                        (elementk attr 1)
+                                        (elementk
+                                        (splitOn (element attr) meteorite) 1)
                               in (toYear (element splitt), elementk splitt 1)
                          else let splitt :: [String]
-                                  splitt = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
+                                  splitt =
+                                       splitOn
+                                       (elementk attr 1)
+                                       (elementk
+                                       (splitOn (element attr) meteorite) 1)
                                   in (element splitt, elementk splitt 1)
                else ("",meteorite)
 
+{- | This function is in charged of extracting the attributes, with the help of
+     a list of identifiers (the first list of Strings), of the xml line
+     representing every Meteorite, corresponding to the string, and storing it
+     in a list that will contain every attribute, the third list of strings,
+     which will store every attribute of the Meteorite until every one has been
+     processed. -}
 extractAttributes :: [String] -> String -> [String] -> [String]
 extractAttributes [] _ attributes = attributes
 extractAttributes (x:xs) meteorite [] =
@@ -167,6 +197,12 @@ extractAttributes (x:xs) meteorite attributes =
                 splitt = extraction attr meteorite
                in extractAttributes xs (snd splitt) (attributes ++ [fst splitt])
 
+{- | This function is incharged of going through all the lines of the xml stored
+     in the first list of strings and passing them to the 'extractAttributes'
+     function, along the second list, which contains the identifiers for
+     every attribute. Such function will return a list of the attributes of the
+     Meteorite, which represent it, and it will be stored in the third list, in
+     charged of storing every meteorite until every line of xml was processed.-}
 listOfMeteorites :: [String] -> [String] -> [[String]] -> [[String]]
 listOfMeteorites [] _ meteorite = meteorite
 listOfMeteorites (x:xs) attributes [] =
@@ -178,9 +214,11 @@ listOfMeteorites (x:xs) attributes meteorite =
          met = extractAttributes attributes x []
          in listOfMeteorites xs attributes (meteorite ++ [met])
 
+{- |  -}
 main :: IO ()
 main = do
-     input <- readFile "prerows.xml"
+     paths <- getArgs
+     input <- readFile (head paths)
      let rows :: [String]
          rows = splitOn "</row>" input
      let attributes :: [String]
@@ -192,4 +230,4 @@ main = do
          met = listOfMeteorites rows attributes []
      let meteorites :: Vector Meteorite
          meteorites = listToVector met []
-     Monad.void (encodeMeteoritesToFile "meteoritos.csv" meteorites)
+     Monad.void (encodeMeteoritesToFile (paths!!1) meteorites)
