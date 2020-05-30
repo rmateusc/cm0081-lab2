@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
---module mining where
 
 import Text.Regex.TDFA
 
@@ -21,8 +20,6 @@ import Data.Csv
   )
 import qualified Data.Csv as Cassava
 
-import Data.Text (Text)
-import qualified Data.Text.Encoding as Text
 
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
@@ -194,7 +191,7 @@ listOfMeteorites (x:xs) attributes meteorite =
 {-Extracting attributes from tree-}
 main :: IO ()
 main = do
-     input <- readFile "C:/Users/danie/Documents/Daniel/Universidad/4toSemestre/LenguajesFormalesyAutomatas/Lab2/prerows.xml"
+     input <- readFile "prerows.xml"
      let rows :: [String]
          rows = splitOn "</row>" input
      let attributes :: [String]
