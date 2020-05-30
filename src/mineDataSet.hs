@@ -42,8 +42,8 @@ data Meteorite =
     }
 
 instance Show Meteorite where
-     show (Mt nm id nt ms fl yr la lo) =
-          show nm ++ "," ++ show id ++ "," ++ show nt ++ "," ++ show ms ++ ","
+     show (Mt nm di nt ms fl yr la lo) =
+          show nm ++ "," ++ show di ++ "," ++ show nt ++ "," ++ show ms ++ ","
           ++ show fl ++ "," ++ show yr ++ "," ++ show la ++ "," ++ show lo
 
 instance ToNamedRecord Meteorite where
@@ -58,18 +58,7 @@ instance ToNamedRecord Meteorite where
         , "Longitude" .= meteoriteLongitude
         ]
 
-itemHeader :: Header
-itemHeader = Vector.fromList
-            [
-                "Name",
-                "ID",
-                "Status",
-                "Mass",
-                "Fell",
-                "Year",
-                "Latitude",
-                "Longitude"
-            ]
+
 
 instance DefaultOrdered Meteorite where
     headerOrder _ = Cassava.header
@@ -129,11 +118,11 @@ listToVector (x:xs) m =
 
 element :: [a] -> a
 element []    = error "list too short"
-element (x:xs) = x
+element (x:_) = x
 
 elementk :: [a] -> Int -> a
 elementk [] _     = error "list too short"
-elementk (x:xs) 0 = x
+elementk (x:_) 0 = x
 elementk (_:xs) k = elementk xs (k - 1)
 
 toYear :: String -> String
@@ -150,16 +139,16 @@ extraction attr meteorite =
          in
               if isin
                     then if element attr == "<nametype>"
-                              then let split :: [String]
-                                       split = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
-                                       in (goodOrBad (element split), elementk split 1)
+                              then let splitt :: [String]
+                                       splitt = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
+                                       in (goodOrBad (element splitt), elementk splitt 1)
                          else if element attr == "<year>"
-                                   then let split :: [String]
-                                            split = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
-                                            in (toYear (element split), elementk split 1)
-                         else let split :: [String]
-                                  split = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
-                                  in (element split, elementk split 1)
+                                   then let splitt :: [String]
+                                            splitt = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
+                                            in (toYear (element splitt), elementk splitt 1)
+                         else let splitt :: [String]
+                                  splitt = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
+                                  in (element splitt, elementk splitt 1)
                else ("",meteorite)
 
 extractAttributes :: [String] -> String -> [String] -> [String]
@@ -167,18 +156,18 @@ extractAttributes [] _ attributes = attributes
 extractAttributes (x:xs) meteorite [] =
      let attr :: [String]
          attr = splitOn ":" x
-         in let split :: (String,String)
-                split = extraction attr meteorite
-                in extractAttributes xs (snd split) [fst split]
+         in let splitt :: (String,String)
+                splitt = extraction attr meteorite
+                in extractAttributes xs (snd splitt) [fst splitt]
 extractAttributes (x:xs) meteorite attributes =
      let attr :: [String]
          attr = splitOn ":" x
-         in let split :: (String,String)
-                split = extraction attr meteorite
-                in extractAttributes xs (snd split) (attributes ++ [fst split])
+         in let splitt :: (String,String)
+                splitt = extraction attr meteorite
+                in extractAttributes xs (snd splitt) (attributes ++ [fst splitt])
 
 listOfMeteorites :: [String] -> [String] -> [[String]] -> [[String]]
-listOfMeteorites [] attributes meteorite = meteorite
+listOfMeteorites [] _ meteorite = meteorite
 listOfMeteorites (x:xs) attributes [] =
      let meteorite :: [String]
          meteorite = extractAttributes attributes x []
