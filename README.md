@@ -1,4 +1,5 @@
 # cm0081-lab2
+This repository contains the Programming Lab 2, corresponding to Meteorite Landings.
 
 ## Authors
 Rafael Mateus Carrión & Daniel Otero Gómez
@@ -17,7 +18,7 @@ vector that later on our program writes it in a .csv file.
 Use the ./mine command followed by the address of the .xml
 file and the name of the .csv file to be written. Example:
 ```bash
-./mine meteoriteLandings.xml meteoriteLandings.csv
+$ ./mine meteoriteLandings.xml meteoriteLandings.csv
 ```
 
 ## GHC version used
