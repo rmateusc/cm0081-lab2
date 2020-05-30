@@ -3,12 +3,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 import Text.Regex.TDFA
-
+import Data.List.Split
+import Data.Vector (Vector)
+import qualified Data.Vector as Vector
 import Control.Exception (IOException)
-import qualified Control.Exception as Exception
-import qualified Data.Foldable as Foldable
-
+import qualified Control.Monad as Monad
 import Data.ByteString.Lazy (ByteString)
+import qualified Data.Foldable as Foldable
+import qualified Control.Exception as Exception
 import qualified Data.ByteString.Lazy as ByteString
 
 import Data.Csv
@@ -20,14 +22,8 @@ import Data.Csv
   )
 import qualified Data.Csv as Cassava
 
-
-import Data.Vector (Vector)
-import qualified Data.Vector as Vector
-
-import Data.List.Split
-
-import qualified Control.Monad as Monad
-
+{- | Represents a Meteorite. With name, id, status, mass, fell, year, latitude
+and longitude as attributes. -}
 data Meteorite =
      Mt
     {
@@ -41,6 +37,7 @@ data Meteorite =
         meteoriteLongitude :: String
     }
 
+{- | Displays attributes of Meteorite. -}
 instance Show Meteorite where
      show (Mt nm di nt ms fl yr la lo) =
           show nm ++ "," ++ show di ++ "," ++ show nt ++ "," ++ show ms ++ ","
@@ -58,8 +55,6 @@ instance ToNamedRecord Meteorite where
         , "Longitude" .= meteoriteLongitude
         ]
 
-
-
 instance DefaultOrdered Meteorite where
     headerOrder _ = Cassava.header
             [
@@ -73,6 +68,8 @@ instance DefaultOrdered Meteorite where
                 "Longitude"
             ]
 
+{- | This function recieves a meteorite vector and encodes it into a
+ByteString. -}
 encodeMeteorites :: Vector Meteorite -> ByteString
 encodeMeteorites =  Cassava.encodeDefaultOrderedByName . Foldable.toList
 
@@ -86,6 +83,8 @@ encodeMeteoritesToFile :: FilePath -> Vector Meteorite -> IO (Either String ())
 encodeMeteoritesToFile filePath = catchShowIO . ByteString.writeFile filePath .
                                                                 encodeMeteorites
 
+{- | This function recieves a list of strings and a list of meteorites and
+transforms them into a vector of meteorites. -}
 listToVector :: [[String]] -> [Meteorite]
                 -> Vector Meteorite
 listToVector [] meteorites = Vector.fromList meteorites
@@ -125,9 +124,11 @@ elementk [] _     = error "list too short"
 elementk (x:_) 0 = x
 elementk (_:xs) k = elementk xs (k - 1)
 
+{- | This function takes the first 4 elements of a string. -}
 toYear :: String -> String
 toYear = take 4
 
+{- | This function replaces a string depending on how it is. -}
 goodOrBad :: String -> String
 goodOrBad "Valid" = "Good"
 goodOrBad "Relict" = "Bad"
@@ -137,21 +138,22 @@ extraction :: [String] -> String -> (String,String)
 extraction attr meteorite =
      let isin :: Bool
          isin = (meteorite =~ element attr)
-         in
-              if isin
-                    then if element attr == "<nametype>"
-                              then let splitt :: [String]
-                                       splitt = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
-                                       in (goodOrBad (element splitt), elementk splitt 1)
+         in if isin
+                then if element attr == "<nametype>"
+                        then let splitt :: [String]
+                                 splitt = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
+                              in (goodOrBad (element splitt), elementk splitt 1)
                          else if element attr == "<year>"
-                                   then let splitt :: [String]
-                                            splitt = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
-                                            in (toYear (element splitt), elementk splitt 1)
+                            then let splitt :: [String]
+                                     splitt = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
+                              in (toYear (element splitt), elementk splitt 1)
                          else let splitt :: [String]
                                   splitt = splitOn (elementk attr 1) (elementk (splitOn (element attr) meteorite) 1)
                                   in (element splitt, elementk splitt 1)
                else ("",meteorite)
 
+{- | This function recieves a list of strings, a string and another list of
+    strings. Then it splits the first list of strings and splits -}
 extractAttributes :: [String] -> String -> [String] -> [String]
 extractAttributes [] _ attributes = attributes
 extractAttributes (x:xs) meteorite [] =
@@ -165,7 +167,7 @@ extractAttributes (x:xs) meteorite attributes =
          attr = splitOn ":" x
          in let splitt :: (String,String)
                 splitt = extraction attr meteorite
-                in extractAttributes xs (snd splitt) (attributes ++ [fst splitt])
+               in extractAttributes xs (snd splitt) (attributes ++ [fst splitt])
 
 listOfMeteorites :: [String] -> [String] -> [[String]] -> [[String]]
 listOfMeteorites [] _ meteorite = meteorite
@@ -178,7 +180,6 @@ listOfMeteorites (x:xs) attributes meteorite =
          met = extractAttributes attributes x []
          in listOfMeteorites xs attributes (meteorite ++ [met])
 
-{-Extracting attributes from tree-}
 main :: IO ()
 main = do
      input <- readFile "prerows.xml"
